@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 import os
 from dotenv import load_dotenv
 from ml_tools import MLModel
@@ -9,18 +9,17 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-
-#загрузка переменных.env
+# Загрузка переменных .env
 load_dotenv()
 
-#FastAPI
+# FastAPI приложение
 app = FastAPI(
     title="Linear Regression API",
     description="API для предсказаний с использованием модели линейной регрессии",
     version="1.0.0"
 )
 
-#загрузка параметров из переменных окружения
+# Загрузка параметров из переменных окружения
 MODEL_PATH = os.getenv("MODEL_PATH", "models/model.joblib")
 MODEL_INFO_PATH = os.getenv("MODEL_INFO_PATH", "models/model_info.json")
 
@@ -30,6 +29,7 @@ except FileNotFoundError as e:
     raise RuntimeError(f"Ошибка при загрузке модели: {e}")
 
 
+# Pydantic модели
 class PredictionRequest(BaseModel):
     """Модель для запроса предсказания."""
     features: List[float] = Field(
@@ -82,7 +82,11 @@ class StatusResponse(BaseModel):
     status: str = Field(..., description="Статус сервера")
 
 
-#ЭНДПОИНТЫ
+# Создание роутера для API v1 с префиксом
+api_v1_router = APIRouter(prefix="/api/v1", tags=["API v1"])
+
+
+# ЭНДПОИНТЫ
 
 @app.get("/ping", response_model=StatusResponse, tags=["Health"])
 def ping():
@@ -95,7 +99,7 @@ def ping():
     return {"status": "ok"}
 
 
-@app.post("/api/v1/prediction", response_model=PredictionResponse, tags=["Prediction"])
+@api_v1_router.post("/prediction", response_model=PredictionResponse, tags=["Prediction"])
 def predict_post(request: PredictionRequest):
     """
     Выполнить предсказание (POST запрос).
@@ -119,13 +123,13 @@ def predict_post(request: PredictionRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/api/v1/prediction", response_model=PredictionResponse, tags=["Prediction"])
-def predict_get(features: str):
+@api_v1_router.get("/prediction", response_model=PredictionResponse, tags=["Prediction"])
+def predict_get(features: List[float]):
     """
     Выполнить предсказание (GET запрос).
     
     Args:
-        features: Строка с признаками, разделённые запятыми (например: "1.5,2.3,-0.5,1.0")
+        features: Список значений признаков (например: ?features=1.5&features=2.3&features=-0.5&features=1.0)
         
     Returns:
         PredictionResponse: Результат предсказания
@@ -134,21 +138,19 @@ def predict_get(features: str):
         HTTPException: Если данные некорректны
     """
     try:
-        # Парсинг строки признаков
-        feature_list = [float(x.strip()) for x in features.split(',')]
-        prediction = ml_model.predict(feature_list)
+        prediction = ml_model.predict(features)
         return {
             "prediction": prediction,
             "feature_names": ml_model.get_feature_names()
         }
-    except (ValueError, IndexError) as e:
+    except ValueError as e:
         raise HTTPException(
             status_code=400, 
-            detail=f"Ошибка при парсинге признаков: {str(e)}"
+            detail=f"Ошибка при обработке признаков: {str(e)}"
         )
 
 
-@app.get("/api/v1/model_info", response_model=ModelInfo, tags=["Model Info"])
+@api_v1_router.get("/model_info", response_model=ModelInfo, tags=["Model Info"])
 def get_model_info():
     """
     Получить информацию о модели линейной регрессии.
@@ -164,7 +166,11 @@ def get_model_info():
     }
 
 
-#Запуск приложения
+# Подключение роутера к приложению
+app.include_router(api_v1_router)
+
+
+# Запуск приложения
 if __name__ == "__main__":
     import uvicorn
     

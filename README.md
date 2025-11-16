@@ -29,8 +29,8 @@ project/
 
 ### 1. Создание виртуального окружения
 
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 
 ### 2. Установка зависимостей
 
@@ -55,8 +55,12 @@ MODEL_INFO_PATH=../models/model_info.json
 
 ## Запуск приложения
 
-Запуск сервера
-python -m uvicorn app.server:app --reload --host 127.0.0.1 --port 8000
+Из корневой папки проекта в cmd:
+
+```
+cd app 
+python server.py
+```
 
 Сервер будет запущен на `http://127.0.0.1:8000`
 

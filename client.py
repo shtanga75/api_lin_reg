@@ -1,5 +1,5 @@
 """
-client.py взаимодействие с API сервером.
+client.py - взаимодействие с API сервером.
 """
 
 import requests
@@ -96,12 +96,13 @@ def predict_get(features: List[float]):
     Args:
         features: Список значений признаков
     """
-    features_str = ",".join(str(f) for f in features)
     print(f"4️⃣  Предсказание (GET /api/v1/prediction) с признаками: {features}")
     try:
+        # Передача списка как повторяющихся параметров
+        params = [('features', f) for f in features]
         response = requests.get(
             f"{BASE_URL}/api/v1/prediction",
-            params={"features": features_str}
+            params=params
         )
         if response.status_code == 200:
             data = response.json()
@@ -123,19 +124,19 @@ def main():
     print("КЛИЕНТ ДЛЯ API СЕРВЕРА ЛИНЕЙНОЙ РЕГРЕССИИ")
     print("="*60)
     
-    #1.Проверка работоспособности
+    # 1. Проверка работоспособности
     if not check_server_health():
         print("\nСервер недоступен. Убедитесь, что сервер запущен на", BASE_URL)
         return
     
     print_separator()
     
-    #2.Получение информации
+    # 2. Получение информации
     model_info = get_model_info()
     
     print_separator()
     
-    #3.Несколько примеров предсказания с POST запросом
+    # 3. Несколько примеров предсказания с POST запросом
     test_cases_post = [
         [1.5, 2.3, -0.5, 1.0],
         [0.0, 0.0, 0.0, 0.0],
@@ -149,11 +150,11 @@ def main():
     
     print_separator()
     
-    #4.Пример предсказания с GET запросом
+    # 4. Пример предсказания с GET запросом
     predict_get([2.0, -1.5, 0.5, 1.5])
     
     print_separator()
-    print(" Все тесты завершены успешно!\n")
+    print("✅ Все тесты завершены успешно!\n")
 
 
 if __name__ == "__main__":
